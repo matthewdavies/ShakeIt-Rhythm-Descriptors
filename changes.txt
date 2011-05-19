@@ -1,0 +1,57 @@
+Potential changes to code and general notes:
+
+inputfeature:
+	- do we want to use this feature at all? what about other features... complex spectral difference etc?
+	sub-band filters are not stable unless order is cut in two.
+
+	l.98	subBand = subBand .* (subBand > 0) .^2; % as implemented by Fabien but this doesn't square
+		%	subBand = ( subBand .* (subBand > 0) ) .^2; % this version squares the result
+	the former of these DOESN'T square the subBand... but it should do. 
+
+	l.102		dsSubBand = decimate(subBand,dsFactor);
+	should make sure that this is non-negative... 
+
+	l.123		feature(i,ct) = sum((smoothDsSubBand(pin+1:pin+winlen)));
+	really want to take the 'abs' of this.
+
+
+ssimDescs:
+
+	l.16 	fullAcf = max(xcorr(feature, corrSize, 'coeff'),0);  
+	do we want to take the 'unbiased' acf instead of the biased one? (probably the lags are short enough that it doesn't matter
+
+	l.110	acf_2 = max(xcorr(seq, NPointsPerBeat+1, 'coeff'),0); % do as before by HWR the acf
+	do we want to do some smoothing between the concatenated frames in seq? there's bound to be some discontinuities here
+
+
+microtDescs:
+
+	l.57 	aveBeatPattern = mean(pattern,2);
+	we could do k-means here instead of just taking the mean
+
+	l.91 	descs(1) = max(dev1); %% SYSTEMATIC MICROTIMING
+	l.92 	descs(2) = mean(dev1);
+	l.93 	descs(3) = max(dev2);
+	l.94 	descs(4) = mean(dev2);
+	not totally sure what these mean.
+
+
+periodfuncDescs:
+
+	l.69	beats_II(beats_II > length(feature)) = []; % fabien doesn't have this line, but i think it's needed
+	need to remove beats off the end of the featureFs
+
+	l.89    v_fast(i) = var(feature(beats_fast(i):min(length(feature),beats_fast(i+1))));
+	l.99    v_slow(i) = var(feature(beats_slow(i):min(length(feature),beats_slow(i+1))));
+	should these be calculated between beats or around beats?
+	also, should it be up to beats_fast(i+1)-1 , and likewise for beats_slow? 
+
+	l.116 	descs(3) = sum(dev)/length(beats_fast); 
+	should this be abs? if not.. what does it represent?
+
+	l.146	limCorr = ceil(5*featureFs/length(beats_veryFast));
+	still not really sure what this line does... or why the correlation length is limited by the number of fast beats.. I guess they are the number of observations? 
+
+
+	l.161	onBeat = zeros(1,length(feature));
+	should there be a similar declaration for the off-beat? there isn't in the original code.. the same thing is defined twice...  not defining it seems to make a small difference 
